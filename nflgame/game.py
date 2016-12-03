@@ -237,21 +237,21 @@ class Game (object):
     def __new__(cls, eid=None, fpath=None):
         # If we can't get a valid JSON data, exit out and return None.
         try:
-            rawData = _get_json_data(eid, fpath)
+            json_data = _get_json_data(eid, fpath)
         except requests.URLError:
             return None
-        if rawData is None or rawData.strip() == '{}':
+        if json_data is None or json_data.strip() == '{}':
             return None
         game = object.__new__(cls)
-        game.rawData = rawData
+        game.json_data = json_data
 
         try:
             if eid is not None:
                 game.eid = eid
-                game.data = json.loads(game.rawData)[game.eid]
-            else:  # For when we have rawData (fpath) and no eid.
+                game.data = json.loads(game.json_data)[game.eid]
+            else:  # For when we have raw_data (fpath) and no eid.
                 game.eid = None
-                game.data = json.loads(game.rawData)
+                game.data = json.loads(game.json_data)
                 for k, v in game.data.items():
                     if isinstance(v, dict):
                         game.eid = k
@@ -352,7 +352,7 @@ class Game (object):
             fpath = _jsonf % self.eid
         try:
             with gzip.open(fpath, 'wt', newline='') as f:
-                f.write(self.rawData)
+                f.write(self.json_data)
         except IOError:
             msg = "Could not cache JSON data. Please make '%s' writable."
             print(msg.format(os.path.dirname(fpath), file=sys.stderr))
@@ -806,7 +806,8 @@ def _get_json_data(eid=None, fpath=None):
     assert eid is not None or fpath is not None
 
     if fpath is not None:
-        return gzip.open(fpath).read()
+        result = gzip.open(fpath).read()
+        return result.decode('utf-8')
 
     fpath = _jsonf % eid
     if os.access(fpath, os.R_OK):
@@ -815,7 +816,7 @@ def _get_json_data(eid=None, fpath=None):
     try:
         url = _json_base_url % (eid, eid)
         response = requests.get(url, timeout=5)
-        return response
+        return response.text
     except requests.HTTPError:
         pass
     except requests.Timeout:
