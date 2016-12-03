@@ -5,6 +5,7 @@ import gzip
 import json
 import sys
 import requests
+from functools import total_ordering
 
 from nflgame import OrderedDict
 import nflgame.player
@@ -138,6 +139,7 @@ class PossessionTime (object):
         return self.clock
 
 
+@total_ordering
 class GameClock (object):
     """
     Represents the current time in a game. Namely, it keeps track of the
@@ -197,6 +199,20 @@ class GameClock (object):
         elif self._minutes != other._minutes:
             return cmp(other._minutes, self._minutes)
         return cmp(other._seconds, self._seconds)
+
+    def __lt__(self, other):
+        if self.__qtr != other.__qtr:
+            return self.__qtr < other.__qtr
+        elif self._minutes != other._minutes:
+            return self._minutes > other._minutes
+        return self._seconds > other._seconds
+
+    def __eq__(self, other):
+        if self.__qtr != other.__qtr:
+            return False
+        if self._minutes != other._minutes:
+            return False
+        return self._seconds == other._seconds
 
     def __str__(self):
         """
