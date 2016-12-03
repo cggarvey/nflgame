@@ -12,3 +12,7 @@ tags
 TAGS
 *.egg-info
 ve
+.coverage
+cov_html
+*.pyc
+.cache
