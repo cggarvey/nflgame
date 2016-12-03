@@ -5,7 +5,7 @@ import gzip
 import json
 import socket
 import sys
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 from nflgame import OrderedDict
 import nflgame.player
@@ -13,7 +13,7 @@ import nflgame.sched
 import nflgame.seq
 import nflgame.statmap
 
-_MAX_INT = sys.maxint
+_MAX_INT = sys.maxsize
 
 _jsonf = path.join(path.split(__file__)[0], 'gamecenter-json', '%s.json.gz')
 _json_base_url = "http://www.nfl.com/liveupdate/game-center/%s/%s_gtd.json"
@@ -104,7 +104,7 @@ class PossessionTime (object):
         self.clock = clock
 
         try:
-            self.minutes, self.seconds = map(int, self.clock.split(':'))
+            self.minutes, self.seconds = list(map(int, self.clock.split(':')))
         except ValueError:
             self.minutes, self.seconds = 0, 0
 
@@ -150,7 +150,7 @@ class GameClock (object):
         self.clock = clock
 
         try:
-            self._minutes, self._seconds = map(int, self.clock.split(':'))
+            self._minutes, self._seconds = list(map(int, self.clock.split(':')))
         except ValueError:
             self._minutes, self._seconds = 0, 0
         except AttributeError:
@@ -165,7 +165,7 @@ class GameClock (object):
             elif self.is_halftime():
                 self.__qtr = 3
             elif self.is_final():
-                self.__qtr = sys.maxint
+                self.__qtr = sys.maxsize
             else:
                 self.qtr = 'Pregame'
 
@@ -223,7 +223,7 @@ class Game (object):
         # If we can't get a valid JSON data, exit out and return None.
         try:
             rawData = _get_json_data(eid, fpath)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             return None
         if rawData is None or rawData.strip() == '{}':
             return None
@@ -237,7 +237,7 @@ class Game (object):
             else:  # For when we have rawData (fpath) and no eid.
                 game.eid = None
                 game.data = json.loads(game.rawData)
-                for k, v in game.data.iteritems():
+                for k, v in game.data.items():
                     if isinstance(v, dict):
                         game.eid = k
                         game.data = v
@@ -336,11 +336,11 @@ class Game (object):
         if fpath is None:
             fpath = _jsonf % self.eid
         try:
-            print >> gzip.open(fpath, 'w+'), self.rawData,
+            print(self.rawData, end=' ', file=gzip.open(fpath, 'w+'))
         except IOError:
-            print >> sys.stderr, "Could not cache JSON data. Please " \
+            print("Could not cache JSON data. Please " \
                                  "make '%s' writable." \
-                                 % os.path.dirname(fpath)
+                                 % os.path.dirname(fpath), file=sys.stderr)
 
     def nice_score(self):
         """
@@ -378,19 +378,19 @@ class Game (object):
                                                   pplay.name, pplay.home,
                                                   pplay.team)
             maxstats = {}
-            for stat, val in pplay._stats.iteritems():
+            for stat, val in pplay._stats.items():
                 maxstats[stat] = val
 
             newp._overwrite_stats(maxstats)
             max_players[pplay.playerid] = newp
 
-        for newp in max_players.itervalues():
+        for newp in max_players.values():
             for pgame in game_players:
                 if pgame.playerid != newp.playerid:
                     continue
 
                 maxstats = {}
-                for stat, val in pgame._stats.iteritems():
+                for stat, val in pgame._stats.items():
                     maxstats[stat] = max([val,
                                           newp._stats.get(stat, -_MAX_INT)])
 
@@ -490,7 +490,7 @@ class Drive (object):
             self.field_end = FieldPosition(self.team, data['end']['yrdln'])
         else:
             self.field_end = None
-            playids = sorted(map(int, data['plays'].keys()), reverse=True)
+            playids = sorted(map(int, list(data['plays'].keys())), reverse=True)
             for pid in playids:
                 yrdln = data['plays'][str(pid)]['yrdln'].strip()
                 if yrdln:
@@ -505,8 +505,8 @@ class Drive (object):
         # seem to always work.)
         # lastplayid = str(max(map(int, data['plays'].keys())))
         # endqtr = data['plays'][lastplayid]['qtr']
-        qtrs = [p['qtr'] for p in data['plays'].values()]
-        maxq = str(max(map(int, qtrs)))
+        qtrs = [p['qtr'] for p in list(data['plays'].values())]
+        maxq = str(max(list(map(int, qtrs))))
         self.time_end = GameClock(maxq, data['end']['time'])
 
         # One last sanity check. If the end time is less than the start time,
@@ -589,7 +589,7 @@ class Play (object):
                     continue
                 statvals = nflgame.statmap.values(info['statId'],
                                                   info['yards'])
-                for k, v in statvals.iteritems():
+                for k, v in statvals.items():
                     v = self.__dict__.get(k, 0) + v
                     self.__dict__[k] = v
                     self._stats[k] = v
@@ -604,7 +604,7 @@ class Play (object):
         self.__players = _json_play_players(self, data['players'])
         self.players = nflgame.seq.GenPlayerStats(self.__players)
         for p in self.players:
-            for k, v in p.stats.iteritems():
+            for k, v in p.stats.items():
                 # Sometimes we may see duplicate statistics (like tackle
                 # assists). Let's just overwrite in this case, since this
                 # data is from the perspective of the play. i.e., there
@@ -708,7 +708,7 @@ def _json_play_players(play, data):
     to determine whether the player belong to the home team or not.
     """
     players = OrderedDict()
-    for playerid, statcats in data.iteritems():
+    for playerid, statcats in data.items():
         if playerid == '0':
             continue
         for info in statcats:
@@ -734,7 +734,7 @@ def _json_play_events(data):
     Takes a single JSON play entry (data) and converts it to a list of events.
     """
     temp = list()
-    for playerid, statcats in data.iteritems():
+    for playerid, statcats in data.items():
         for info in statcats:
             if info['statId'] not in nflgame.statmap.idmap:
                 continue
@@ -757,9 +757,9 @@ def _json_game_player_stats(game, data):
         for category in nflgame.statmap.categories:
             if category not in data[team]['stats']:
                 continue
-            for pid, raw in data[team]['stats'][category].iteritems():
+            for pid, raw in data[team]['stats'][category].items():
                 stats = {}
-                for k, v in raw.iteritems():
+                for k, v in raw.items():
                     if k == 'name':
                         continue
                     stats['%s_%s' % (category, k)] = v
@@ -797,8 +797,8 @@ def _get_json_data(eid=None, fpath=None):
     if os.access(fpath, os.R_OK):
         return gzip.open(fpath).read()
     try:
-        return urllib2.urlopen(_json_base_url % (eid, eid), timeout=5).read()
-    except urllib2.HTTPError:
+        return urllib.request.urlopen(_json_base_url % (eid, eid), timeout=5).read()
+    except urllib.error.HTTPError:
         pass
     except socket.timeout:
         pass

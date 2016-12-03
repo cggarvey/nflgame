@@ -1,6 +1,6 @@
 try:
     from collections import OrderedDict
-except:
+except ImportError:
     from ordereddict import OrderedDict  # from PyPI
 import datetime
 import json

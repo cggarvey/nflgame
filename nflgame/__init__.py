@@ -88,11 +88,11 @@ import itertools
 
 import sys
 
-if sys.version_info[0] != 2 or sys.version_info[1] < 6:
-    print("nflgame requires Python 2.6+ and does not yet work with Python 3")
-    print("You are running Python version {}.{}".format(
-        sys.version_info.major, sys.version_info.minor))
-    sys.exit(1)
+#if sys.version_info[0] != 2 or sys.version_info[1] < 6:
+#    print("nflgame requires Python 2.6+ and does not yet work with Python 3")
+#    print("You are running Python version {}.{}".format(
+#        sys.version_info.major, sys.version_info.minor))
+#    sys.exit(1)
 
 import nflgame.game  # noqa
 import nflgame.live  # noqa
@@ -100,6 +100,7 @@ import nflgame.player  # noqa
 import nflgame.sched  # noqa
 import nflgame.seq  # noqaj
 from nflgame.version import __version__  # noqa
+from functools import reduce
 
 assert OrderedDict  # Asserting the import for static analysis.
 VERSION = __version__  # Deprecated. Backwards compatibility.
@@ -168,7 +169,7 @@ def find(name, team=None):
     If team is not None, it is used as an additional search constraint.
     """
     hits = []
-    for player in players.itervalues():
+    for player in players.values():
         if player.name.lower() == name.lower():
             if team is None or team.lower() == player.team.lower():
                 hits.append(player)
@@ -434,7 +435,7 @@ def _search_schedule(year, week=None, home=None, away=None, kind='REG',
     (as opposed to waiting for a 404 error from NFL.com).
     """
     infos = []
-    for info in nflgame.sched.games.itervalues():
+    for info in nflgame.sched.games.values():
         y, t, w = info['year'], info['season_type'], info['week']
         h, a = info['home'], info['away']
         if year is not None:
