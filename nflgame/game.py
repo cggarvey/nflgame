@@ -3,9 +3,8 @@ import os
 import os.path as path
 import gzip
 import json
-import socket
 import sys
-import urllib.request, urllib.error, urllib.parse
+import requests
 
 from nflgame import OrderedDict
 import nflgame.player
@@ -223,7 +222,7 @@ class Game (object):
         # If we can't get a valid JSON data, exit out and return None.
         try:
             rawData = _get_json_data(eid, fpath)
-        except urllib.error.URLError:
+        except requests.URLError:
             return None
         if rawData is None or rawData.strip() == '{}':
             return None
@@ -336,11 +335,11 @@ class Game (object):
         if fpath is None:
             fpath = _jsonf % self.eid
         try:
-            print(self.rawData, end=' ', file=gzip.open(fpath, 'w+'))
+            with gzip.open(fpath, 'wt', newline='') as f:
+                f.write(self.rawData)
         except IOError:
-            print("Could not cache JSON data. Please " \
-                                 "make '%s' writable." \
-                                 % os.path.dirname(fpath), file=sys.stderr)
+            msg = "Could not cache JSON data. Please make '%s' writable."
+            print(msg.format(os.path.dirname(fpath), file=sys.stderr))
 
     def nice_score(self):
         """
@@ -795,12 +794,15 @@ def _get_json_data(eid=None, fpath=None):
 
     fpath = _jsonf % eid
     if os.access(fpath, os.R_OK):
-        return gzip.open(fpath).read()
+        result = gzip.open(fpath).read()
+        return result.decode('utf-8')
     try:
-        return urllib.request.urlopen(_json_base_url % (eid, eid), timeout=5).read()
-    except urllib.error.HTTPError:
+        url = _json_base_url % (eid, eid)
+        response = requests.get(url, timeout=5)
+        return response
+    except requests.HTTPError:
         pass
-    except socket.timeout:
+    except requests.Timeout:
         pass
     return None
 
