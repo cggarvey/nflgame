@@ -1,0 +1,11 @@
+beautifulsoup4==4.5.1
+coverage==4.2
+httplib2==0.9.2
+-e git+https://github.com/cggarvey/nflgame.git@d65848e0a82fcf831f5e2bddd2d4b70b08981631#egg=nflgame
+py==1.4.31
+pytest==3.0.4
+pytest-cov==2.4.0
+pytest-cover==3.0.0
+pytest-coverage==0.0
+pytz==2016.7
+requests==2.12.3
