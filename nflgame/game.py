@@ -32,6 +32,7 @@ TeamStats = namedtuple('TeamStats',
 """A collection of team statistics for an entire game."""
 
 
+@total_ordering
 class FieldPosition (object):
     """
     Represents field position.
@@ -75,9 +76,13 @@ class FieldPosition (object):
             self.offset = 50 - yd
 
     def __cmp__(self, other):
-        if isinstance(other, int):
-            return cmp(self.offset, other)
-        return cmp(self.offset, other.offset)
+        return cmp(self.offset, int(other))
+
+    def __lt__(self, other):
+        return self.offset < int(other)
+
+    def __eq__(self, other):
+        return self.offset == int(other)
 
     def __str__(self):
         if self.offset > 0:
@@ -86,6 +91,16 @@ class FieldPosition (object):
             return 'OWN %d' % (50 + self.offset)
         else:
             return 'MIDFIELD'
+
+    def __int__(self):
+        return self.offset
+
+    def __add__(self, yards):
+        return self.add_yards(int(yards))
+
+    def __sub__(self, yards):
+        yards = -1 * int(yards)
+        return self.add_yards(yards)
 
     def add_yards(self, yards):
         """
@@ -96,6 +111,7 @@ class FieldPosition (object):
         return FieldPosition(offset=newoffset)
 
 
+@total_ordering
 class PossessionTime (object):
     """
     Represents the amount of time a drive lasted in (minutes, seconds).
@@ -105,7 +121,7 @@ class PossessionTime (object):
 
         try:
             self.minutes, self.seconds = list(map(int, self.clock.split(':')))
-        except ValueError:
+        except (ValueError, AttributeError):
             self.minutes, self.seconds = 0, 0
 
     def total_seconds(self):
@@ -117,6 +133,16 @@ class PossessionTime (object):
     def __cmp__(self, other):
         a, b = (self.minutes, self.seconds), (other.minutes, other.seconds)
         return cmp(a, b)
+
+    def __lt__(self, other):
+        a, b = (self.minutes, self.seconds), (other.minutes, other.seconds)
+        if a[0] < b[0]:
+            return True
+        return a[1] < b[1]
+
+    def __eq__(self, other):
+        a, b = (self.minutes, self.seconds), (other.minutes, other.seconds)
+        return a == b
 
     def __add__(self, other):
         new_time = PossessionTime('0:00')
@@ -152,9 +178,7 @@ class GameClock (object):
 
         try:
             self._minutes, self._seconds = list(map(int, self.clock.split(':')))
-        except ValueError:
-            self._minutes, self._seconds = 0, 0
-        except AttributeError:
+        except (ValueError, AttributeError):
             self._minutes, self._seconds = 0, 0
         try:
             self.__qtr = int(self.qtr)
