@@ -142,6 +142,19 @@ def test_field_position_add_int():
     assert fp.offset < 50
 
 
+def test_field_position_sub():
+    a = nflgame.game.FieldPosition(offset=20)
+    b = nflgame.game.FieldPosition(offset=10)
+    fp = a - b
+    assert fp.offset == 10
+
+
+def test_field_position_sub_int():
+    fp = nflgame.game.FieldPosition(offset=20)
+    fp = fp - 10
+    assert fp.offset == 10
+
+
 def test_field_position_lt():
     a = nflgame.game.FieldPosition(offset=10)
     b = nflgame.game.FieldPosition(offset=20)
