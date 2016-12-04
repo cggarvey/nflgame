@@ -276,7 +276,7 @@ class Game (object):
 
         return game
 
-    def __init__(self, eid=None, fpath=None):
+    def __init__(self, eid):
         """
         Creates a new Game instance given a game identifier.
 

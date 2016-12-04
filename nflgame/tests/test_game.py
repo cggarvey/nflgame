@@ -176,6 +176,10 @@ def test_game_noargs():
         nflgame.game.Game()
 
 
+def test_game_bogus_eid():
+    g = nflgame.game.Game("0000000000")
+    assert not g
+
 _eid = "2016090166"  # eid used for testing purposes below
 
 
@@ -203,6 +207,11 @@ def test_game_get_json_web_disk_equal(json_web, json_disk):
     assert json_web == json_disk
 
 
+def test_game_get_json_bogus_eid():
+    data = nflgame.game._get_json_data('0000000000')
+    assert not data
+
+
 @pytest.fixture(scope='session')
 def game():
     return nflgame.game.Game(_eid)
@@ -223,3 +232,10 @@ def test_game_ishome(game):
     assert not game.is_home('SEA')
 
 
+@pytest.fixture(scope='session')
+def mps(game):
+    return game.max_player_stats()
+
+
+def test_game_max_player_stats(mps):
+    assert hasattr(mps, '__iter__')
