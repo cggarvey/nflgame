@@ -258,30 +258,19 @@ class Game (object):
     the winner of the game, the score and a list of all the scoring plays.
     """
 
-    def __new__(cls, eid=None, fpath=None):
+    def __new__(cls, eid):
         # If we can't get a valid JSON data, exit out and return None.
-        try:
-            json_data = _get_json_data(eid, fpath)
-        except requests.URLError:
-            return None
-        if json_data is None or json_data.strip() == '{}':
+
+        json_data = _get_json_data(eid)
+
+        if json_data is None or len(json_data) == 0:
             return None
         game = object.__new__(cls)
         game.json_data = json_data
 
         try:
-            if eid is not None:
-                game.eid = eid
-                game.data = json.loads(game.json_data)[game.eid]
-            else:  # For when we have raw_data (fpath) and no eid.
-                game.eid = None
-                game.data = json.loads(game.json_data)
-                for k, v in game.data.items():
-                    if isinstance(v, dict):
-                        game.eid = k
-                        game.data = v
-                        break
-                assert game.eid is not None
+            game.eid = eid
+            game.data = game.json_data[game.eid]
         except ValueError:
             return None
 
@@ -816,7 +805,7 @@ def _json_game_player_stats(game, data):
     return players
 
 
-def _get_json_data(eid=None, fpath=None):
+def _get_json_data(eid, ignore_disk=False):
     """
     Returns the JSON data corresponding to the game represented by eid.
 
@@ -824,28 +813,36 @@ def _get_json_data(eid=None, fpath=None):
 
     Otherwise, the JSON data is downloaded from the NFL web site. If the data
     doesn't exist yet or there was an error, _get_json_data returns None.
-
-    If eid is None, then the JSON data is read from the file at fpath.
     """
-    assert eid is not None or fpath is not None
 
-    if fpath is not None:
-        result = gzip.open(fpath).read()
-        return result.decode('utf-8')
+    try:
+        if not ignore_disk:
+            return _get_json_from_disk(eid)
+    except IOError:
+        return _get_json_from_web(eid)
 
+    return _get_json_from_web(eid)
+
+
+def _get_json_from_disk(eid):
     fpath = _jsonf % eid
-    if os.access(fpath, os.R_OK):
-        result = gzip.open(fpath).read()
-        return result.decode('utf-8')
+    try:
+        if os.access(fpath, os.R_OK):
+            result = gzip.open(fpath).read()
+            return json.loads(result.decode('utf-8'))
+        else:
+            return None
+    except (IOError, os.FileNotFoundError):
+        return None
+
+
+def _get_json_from_web(eid):
     try:
         url = _json_base_url % (eid, eid)
         response = requests.get(url, timeout=5)
-        return response.text
-    except requests.HTTPError:
-        pass
-    except requests.Timeout:
-        pass
-    return None
+        return json.loads(response.text)
+    except (requests.HTTPError, requests.Timeout):
+        return None
 
 
 def _tryint(v):

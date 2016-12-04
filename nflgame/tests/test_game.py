@@ -170,3 +170,56 @@ def test_tryint():
     assert nflgame.game._tryint(None) == 0
     assert nflgame.game._tryint('') == 0
 
+
+def test_game_noargs():
+    with pytest.raises(TypeError):
+        nflgame.game.Game()
+
+
+_eid = "2016090166"  # eid used for testing purposes below
+
+
+@pytest.fixture(scope='session')
+def json_disk():
+    return nflgame.game._get_json_from_disk(_eid)
+
+
+@pytest.fixture(scope='session')
+def json_web():
+    return nflgame.game._get_json_from_web(_eid)
+
+
+def test_game_get_json_data_disk(json_disk):
+    assert isinstance(json_disk, dict)
+    assert _eid in json_disk.keys()
+
+
+def test_game_get_json_data_web(json_web):
+    assert isinstance(json_web, dict)
+    assert _eid in json_web.keys()
+
+
+def test_game_get_json_web_disk_equal(json_web, json_disk):
+    assert json_web == json_disk
+
+
+@pytest.fixture(scope='session')
+def game():
+    return nflgame.game.Game(_eid)
+
+
+def test_game_attributes(game):
+    assert isinstance(game, nflgame.game.Game)
+    assert isinstance(game.data, dict)
+    assert game.home == 'OAK'
+    assert game.away == 'SEA'
+    assert game.nice_score() == 'SEA (23) at OAK (21)'
+    assert game.game_over()
+    assert not game.playing()
+
+
+def test_game_ishome(game):
+    assert game.is_home('OAK')
+    assert not game.is_home('SEA')
+
+
